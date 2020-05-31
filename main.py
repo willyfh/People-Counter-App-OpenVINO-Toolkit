@@ -67,7 +67,7 @@ def build_argparser():
                         "(0.5 by default)")
     return parser
 
-def draw_output(frame, width, height, output, prob_threshold):
+def draw_output(frame, width, height, output, prob_threshold, hist):
     """
     Draw model output on a frame.
     :param frame: image frame
@@ -84,7 +84,12 @@ def draw_output(frame, width, height, output, prob_threshold):
             ymax = int(box[6] * height)
             cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 3)
             counter += 1
-    return frame, counter
+    if counter > 0:
+        hist = 5
+    elif (counter == 0) and (hist > 0):
+        counter = 1
+        hist += -1
+    return frame, counter, hist
 
 def connect_mqtt():
     client = mqtt.Client()
@@ -111,6 +116,7 @@ def infer_on_stream(args, client):
     delay_counter = 0
     max_delay = 2
     start_time = None
+    hist = -1
     
     # Initialise the class
     infer_network = Network()
@@ -169,7 +175,7 @@ def infer_on_stream(args, client):
             ### Get the results of the inference request ###
             output = infer_network.get_output(curr_req_id)
             
-            frame, curr_counter = draw_output(frame, width, height, output, prob_threshold)
+            frame, curr_counter, hist = draw_output(frame, width, height, output, prob_threshold, hist)
             
             infer_time_text = "Inference : {:.3f}ms".format(infer_duration * 1000)                      
             cv2.putText(frame, infer_time_text, (20, 380), cv2.FONT_HERSHEY_COMPLEX, 0.8, (0, 255, 0), 1)
@@ -222,3 +228,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
